@@ -6,12 +6,14 @@ from models.client import Client
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
-from utils.config import secret_key, database_uri, jwt_secret, track_modifications
+from utils.config import secret_key, database_uri, jwt_secret, track_modifications, pool_timeout, pool_recycle
 app = Flask(__name__)
 
 app.secret_key = secret_key
 app.config["SQLALCHEMY_DATABASE_URI"]= database_uri
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = track_modifications
+app.config['SQLALCHEMY_POOL_TIMEOUT'] = pool_timeout
+app.config['SQLALCHEMY_POOL_RECYCLE'] = pool_recycle
 app.config["JWT_SECRET_KEY"] = jwt_secret
 
 tempdb = SQLAlchemy(app)
