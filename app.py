@@ -7,6 +7,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
 from utils.config import secret_key, database_uri, jwt_secret, track_modifications, pool_timeout, pool_recycle
+import git
 app = Flask(__name__)
 
 app.secret_key = secret_key
@@ -39,3 +40,11 @@ def user_identity_lookup(client):
 def user_lookup_callback(_jwt_header, jwt_data):
     identity = jwt_data["sub"]
     return Client.query.filter_by(id=identity).one_or_none()
+
+@app.route("/git_update", methods=["POST"])
+def git_update():
+    repo = git.Repo("./QueenApp")
+    origin = repo.remotes.origin
+    repo.create_head('master',origin.refs.master).set_tracking_branch(origin.refs.master).checkout()
+    origin.pull()
+    return '', 200

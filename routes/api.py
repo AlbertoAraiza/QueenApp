@@ -47,4 +47,3 @@ def login():
         access_token = create_access_token(identity=client, expires_delta = exp)
         return jsonify(access_token=access_token, expires = exp)
     else: return jsonify({"msg": "Bad username or password"}), 401
-
