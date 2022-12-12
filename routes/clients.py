@@ -8,7 +8,8 @@ clients = Blueprint("clients", __name__)
 @clients.route("/")
 def index():
     clients = Client.query.all()
-    return render_template("index.html", clients = clients)
+    return "Hola mundo"
+    #return render_template("index.html", clients = clients)
 
 @clients.route("/new",methods = ['POST'])
 def add():

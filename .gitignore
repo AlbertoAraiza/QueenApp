@@ -1,10 +1,6 @@
-utils/config.py
-utils/__pycache__
-routes/__pycache__
-models/__pycache__
-migrations/__pycache__
-migrations/versions/__pycache__
-__pycache__
-.vscode
+__pycache__/app.cpython-310.pyc
 routes/__pycache__/api.cpython-310.pyc
+routes/__pycache__/clients.cpython-310.pyc
+.gitignore
+utils/config.py
 utils/__pycache__/config.cpython-310.pyc
