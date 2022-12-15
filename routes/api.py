@@ -41,9 +41,11 @@ def login():
 
     client = Client.query.filter_by(phone_number = username).one_or_none()
     print(f"client: {client}")
+    if client is None:
+        return jsonify({"msg": "Número de teléfono inválido", "code": "1"})
     if client and client.device_hash == password:
-        now = datetime.datetime.now()
+        now = datetime.now()
         exp = now + datetime.timedelta(1)
-        access_token = create_access_token(identity=client, expires_delta = exp)
+        access_token = create_access_token(identity=client, expires_delta = exp, code = 0)
         return jsonify(access_token=access_token, expires = exp)
-    else: return jsonify({"msg": "Bad username or password"}), 401
+    else: return jsonify({"msg": "Identificador incorrecto", "code":"2"})
