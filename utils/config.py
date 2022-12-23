@@ -1,0 +1,10 @@
+secret_key = "secret_key"
+db_username = "root"
+db_password = ""
+db_host = "localhost"
+db_name = "quenna_db"
+database_uri = f"mysql://{db_username}:{db_password}@{db_host}/{db_name}"
+pool_timeout = 600
+pool_recycle = 10
+track_modifications = False
+jwt_secret = "vDiCcWBwh)c(>8SU"

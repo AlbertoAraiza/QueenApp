@@ -1,0 +1,21 @@
+
+<div class="col-md-5">
+    <form class="form-group" action="{{url_for('clients.add')}}" method="post">
+        <div class="mb-3">
+            <label class="form-label" for="first_name">Nombre(s)</label>
+            <input type="text" name="first_name" class="form-control">
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="last_name">Apellidos</label>
+            <input type="text" name="last_name" class="form-control">
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="phone_number">Numero de telefono</label>
+            <input type="text" name="phone_number" class="form-control">
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="device_id">Android ID</label>
+            <input type="text" name="device_id" class="form-control">
+        </div>
+        <button class="btn btn-primary">Guardar</button>
+</div>
