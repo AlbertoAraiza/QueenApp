@@ -4,6 +4,7 @@ from routes.api import api
 from routes.tickets import tickets
 from models.client import Client
 from flask_sqlalchemy import SQLAlchemy
+from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
 from utils.config import secret_key, database_uri, jwt_secret, track_modifications, pool_timeout, pool_recycle
@@ -18,6 +19,8 @@ app.config['SQLALCHEMY_POOL_RECYCLE'] = pool_recycle
 app.config["JWT_SECRET_KEY"] = jwt_secret
 
 tempdb = SQLAlchemy(app)
+tempma = Marshmallow(app)
+
 Migrate(app, tempdb)
 jwt = JWTManager(app, True)
 
