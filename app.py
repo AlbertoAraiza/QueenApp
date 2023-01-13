@@ -2,6 +2,7 @@ from flask import Flask
 from routes.clients import clients
 from routes.api import api
 from routes.tickets import tickets
+from routes.job_api import job_api
 from models.client import Client
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
@@ -27,6 +28,7 @@ jwt = JWTManager(app, True)
 app.register_blueprint(clients)
 app.register_blueprint(api, url_prefix="/api/customers")
 app.register_blueprint(tickets, url_prefix="/api/tickets")
+app.register_blueprint(job_api, url_prefix="/api/jobs")
 
 # Register a callback function that takes whatever object is passed in as the
 # identity when creating JWTs and converts it to a JSON serializable format.

@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request, json
 from models.role_names import RoleNames
-from models.client import Client
+from models.client import Client, client_schema
 from flask_jwt_extended import create_access_token, jwt_required, current_user
 from datetime import datetime, timedelta
 from utils.db import db
@@ -10,6 +10,15 @@ api = Blueprint("api", __name__)
 @api.route('/clientList')
 def clientList():
     return jsonify({"hola": "mundo", "adios":"amor"})
+
+@api.route('/validatePhoneNumber')
+def validatePhoneNumber():
+    phoneNumber = request.args.get("phone_number", "", str)
+    client = Client.query.filter_by(phone_number = phoneNumber).one_or_none()
+    if client:
+        return jsonify({"valid": True})
+    else:
+        return jsonify({"valid": False})
 
 @api.route("/")
 @jwt_required()
@@ -36,9 +45,10 @@ def passwordUpdate():
 
 @api.route("/login", methods=["POST"])
 def login():
+    print("Login")
     username = request.json.get("username", None)
     password = request.json.get("password", None)
-
+    print("params getted")
     client = Client.query.filter_by(phone_number = username).one_or_none()
     print(f"client: {client}")
     if client is None:
@@ -48,8 +58,11 @@ def login():
         exp = now + timedelta(1)
         print(exp)
         access_token = create_access_token(identity=client, expires_delta = timedelta(1))
+        print("returning")
         return jsonify(access_token=access_token, expires = exp.strftime("%H:%M:%S %d-%m-%Y"))
-    else: return jsonify({"msg": "Identificador incorrecto", "code":"2"})
+    else:
+        print("returning")
+        return jsonify({"msg": "Identificador incorrecto", "code":"2"})
 
 @api.route("/add", methods=["POST"])
 @jwt_required()
@@ -68,11 +81,10 @@ def addCustomer():
 @api.route("/user_role_name", methods=["GET"])
 @jwt_required()
 def listOrders():
+    print("HOLA MUNDO")
     return jsonify({"role_name": current_user.role_name})
 
 @api.route("/list", methods=["GET"])
 @jwt_required()
 def customersList():
-    customers = Client.query.all()
-    print(customers)
-    return jsonify({"customers" : customers})
+    return client_schema.dump(Client.query.all())

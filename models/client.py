@@ -1,4 +1,4 @@
-from utils.db import db
+from utils.db import db, ma
 
 class Client(db.Model):
     id = db.Column(db.Integer, primary_key = True)
@@ -19,3 +19,15 @@ class Client(db.Model):
 
     def as_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
+class ClientSchema(ma.SQLAlchemySchema):
+    class Meta:
+        model = Client
+    id = ma.auto_field()
+    first_name = ma.auto_field()
+    last_name = ma.auto_field()
+    email = ma.auto_field()
+    phone_number = ma.auto_field()
+    role_name = ma.auto_field()
+
+client_schema = ClientSchema(many = True)
