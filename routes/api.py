@@ -91,13 +91,18 @@ def customersList():
 
 @api.route("/addAdmin", methods=["POST"])
 def addAdmin():
-    newClient = Client(
-        first_name=request.json.get("first_name", None),
-        last_name=request.json.get("last_name", None),
-        email="nothing@else.matter",
-        phone_number=request.json.get("phone_number", None),
-        device_hash=request.json.get("device_hash", None),
-        role = RoleNames.ADMIN)
-    db.session.add(newClient)
+    phoneNumber = request.json.get("phone_number", None)
+    newClient = Client.query.filter_by(phone_number=phoneNumber).one_or_none()
+    if newClient is None:
+        newClient = Client(
+            first_name=request.json.get("first_name", None),
+            last_name=request.json.get("last_name", None),
+            email="nothing@else.matter",
+            phone_number=request.json.get("phone_number", None),
+            device_hash=request.json.get("device_hash", None),
+            role = RoleNames.ADMIN)
+        db.session.add(newClient)
+    else:
+        newClient.role_name = RoleNames.ADMIN.name
     db.session.commit()
     return jsonify({"msg": "Success"})

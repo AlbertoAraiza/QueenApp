@@ -8,7 +8,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
-from utils.config import secret_key, database_uri, jwt_secret, track_modifications, pool_timeout, pool_recycle
+from utils.config import secret_key, database_uri, jwt_secret, track_modifications, pool_timeout, pool_recycle, pool_pre_ping
 import git
 app = Flask(__name__)
 
@@ -17,6 +17,7 @@ app.config["SQLALCHEMY_DATABASE_URI"]= database_uri
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = track_modifications
 app.config['SQLALCHEMY_POOL_TIMEOUT'] = pool_timeout
 app.config['SQLALCHEMY_POOL_RECYCLE'] = pool_recycle
+app.config['SQLALCHEMY_POOL_PRE_PING'] = pool_pre_ping
 app.config["JWT_SECRET_KEY"] = jwt_secret
 
 tempdb = SQLAlchemy(app)
