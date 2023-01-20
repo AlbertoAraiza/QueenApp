@@ -46,11 +46,15 @@ def passwordUpdate():
 @api.route("/login", methods=["POST"])
 def login():
     print("Login")
+    db.session()
     username = request.json.get("username", None)
     password = request.json.get("password", None)
     print("params getted")
-    client = Client.query.filter_by(phone_number = username).one_or_none()
+    query = Client.query.filter_by(phone_number = username)
+    print(f"query: {query}")
+    client = query.one_or_none()
     print(f"client: {client}")
+    db.session.commit()
     if client is None:
         return jsonify({"msg": "Número de teléfono inválido", "code": "1"})
     if client and client.device_hash == password:
@@ -63,6 +67,7 @@ def login():
     else:
         print("returning")
         return jsonify({"msg": "Identificador incorrecto", "code":"2"})
+
 
 @api.route("/add", methods=["POST"])
 @jwt_required()

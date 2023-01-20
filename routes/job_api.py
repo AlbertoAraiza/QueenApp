@@ -12,10 +12,7 @@ job_api = Blueprint("job_api", __name__)
 def clientList():
     phone_number = request.args.get("phone_number", "", str)
     jobs = Job.query.filter_by(phone_number = phone_number).all()
-    print(jobs.size)
-    x = job_schema.dump(jobs)
-    print(x)
-    return x
+    return job_schema.dump(jobs)
 
 @job_api.route("/add", methods=["POST"])
 @jwt_required()
