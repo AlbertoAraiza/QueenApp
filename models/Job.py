@@ -11,25 +11,23 @@
 from utils.db import db, ma
 
 class Job(db.Model):
-    id = db.Column(db.String(50), primary_key = True)
-    client_name = db.Column(db.String(100))
-    phone_number = db.Column(db.String(10))
+    id = db.Column(db.Integer, primary_key = True)
     final_price = db.Column(db.Float())
     payment = db.Column(db.Float())
     description  = db.Column(db.String(150))
     status = db.Column(db.String(10))
     deliver_date = db.Column(db.String(50))
+    qr_code = db.Column(db.String(50), unique=True)
+    customer_id = db.Column(db.Integer, db.ForeignKey("client.id"), nullable = False)
 
-    def __init__(self, id, client_name, phone_number, final_price, payment, description, status, deliver_date):
-        self.id = id
-        self.client_name = client_name
-        self.phone_number = phone_number
+    def __init__(self, final_price, payment, description, status, deliver_date, qr_code, customer_id):
         self.final_price = final_price
         self.payment = payment
         self.description = description
         self.status = status
         self.deliver_date = deliver_date
-
+        self.qr_code = qr_code
+        self.customer_id = customer_id
     def as_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
@@ -37,12 +35,12 @@ class JobSchema(ma.SQLAlchemySchema):
     class Meta:
         model = Job
     id = ma.auto_field()
-    client_name = ma.auto_field()
-    phone_number = ma.auto_field()
     final_price = ma.auto_field()
     payment = ma.auto_field()
     description = ma.auto_field()
     status = ma.auto_field()
     deliver_date = ma.auto_field()
+    qr_code = ma.auto_field()
+    customer_id = ma.auto_field()
 
 job_schema = JobSchema(many = True)

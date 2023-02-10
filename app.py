@@ -10,6 +10,9 @@ from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
 from utils.config import secret_key, database_uri, jwt_secret, track_modifications, pool_timeout, pool_recycle, pool_pre_ping
 import git
+import firebase_admin
+from firebase_admin import credentials
+
 app = Flask(__name__)
 
 app.secret_key = secret_key
@@ -25,6 +28,9 @@ tempma = Marshmallow(app)
 
 Migrate(app, tempdb)
 jwt = JWTManager(app, True)
+
+cred = credentials.Certificate("./utils/firebase-adminsdk.json")
+firebase_admin.initialize_app(cred)
 
 app.register_blueprint(clients)
 app.register_blueprint(api, url_prefix="/api/customers")

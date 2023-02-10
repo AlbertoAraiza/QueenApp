@@ -4,7 +4,7 @@ from models.client import Client, client_schema
 from flask_jwt_extended import create_access_token, jwt_required, current_user
 from datetime import datetime, timedelta
 from utils.db import db
-
+from utils.send_notifications import sendNotification
 
 api = Blueprint("api", __name__)
 @api.route('/clientList')
@@ -33,6 +33,8 @@ def testAddress():
 def passwordUpdate():
     phoneNumber = request.json.get("phone_number", None)
     deviceId = request.json.get("device_id", None)
+    fcmToken = request.json.get("fcm_token", None)
+
     client = Client.query.filter_by(phone_number = phoneNumber).one_or_none()
     print(f"phone_number: {phoneNumber}, device_id: {deviceId}")
     print(f"client: {client}")
@@ -40,6 +42,7 @@ def passwordUpdate():
     if client is None:
         return "Error: No client", 400
     client.device_hash = deviceId
+    client.fcm_token = fcmToken
     db.session.commit()
     return "password updated"
 
@@ -58,14 +61,18 @@ def login():
     if client is None:
         return jsonify({"msg": "Número de teléfono inválido", "code": "1"})
     if client and client.device_hash == password:
+        #if client.fcm_token:
+            #sendNotification(client.fcm_token, "Nuevo inicio de sesion", "Se ha registrado un nuevo inicio de sesion")
         now = datetime.now()
         exp = now + timedelta(1)
         print(exp)
         access_token = create_access_token(identity=client, expires_delta = timedelta(1))
         print("returning")
+        db.session.close()
         return jsonify(access_token=access_token, expires = exp.strftime("%H:%M:%S %d-%m-%Y"))
     else:
         print("returning")
+        db.session.close()
         return jsonify({"msg": "Identificador incorrecto", "code":"2"})
 
 
@@ -75,7 +82,7 @@ def addCustomer():
     newClient = Client(
         first_name=request.json.get("first_name", None),
         last_name=request.json.get("last_name", None),
-        email="nothing@else.matter",
+        fcm_token = "",
         phone_number=request.json.get("phone_number", None),
         device_hash="",
         role = RoleNames.CUSTOMER)
@@ -92,7 +99,10 @@ def listOrders():
 @api.route("/list", methods=["GET"])
 @jwt_required()
 def customersList():
-    return client_schema.dump(Client.query.all())
+    db.session()
+    clients = Client.query.all()
+    db.session().close()
+    return client_schema.dump(clients)
 
 @api.route("/addAdmin", methods=["POST"])
 def addAdmin():
@@ -100,11 +110,11 @@ def addAdmin():
     newClient = Client.query.filter_by(phone_number=phoneNumber).one_or_none()
     if newClient is None:
         newClient = Client(
-            first_name=request.json.get("first_name", None),
-            last_name=request.json.get("last_name", None),
-            email="nothing@else.matter",
-            phone_number=request.json.get("phone_number", None),
-            device_hash=request.json.get("device_hash", None),
+            first_name = request.json.get("first_name", None),
+            last_name = request.json.get("last_name", None),
+            fcm_token = request.json.get("fcm_token", None),
+            phone_number = request.json.get("phone_number", None),
+            device_hash = request.json.get("device_hash", None),
             role = RoleNames.ADMIN)
         db.session.add(newClient)
     else:
