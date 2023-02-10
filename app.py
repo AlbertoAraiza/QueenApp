@@ -28,7 +28,7 @@ tempma = Marshmallow(app)
 
 Migrate(app, tempdb)
 jwt = JWTManager(app, True)
-path = os.path.abspath(os.path.dirname(__file__)) + "\\utils\\firebase-adminsdk.json"
+path = os.path.abspath(os.path.dirname(__file__)) + "/utils/firebase-adminsdk.json"
 print(path)
 cred = credentials.Certificate(path)
 firebase_admin.initialize_app(cred)
