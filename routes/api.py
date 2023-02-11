@@ -14,10 +14,13 @@ def clientList():
 @api.route('/validatePhoneNumber')
 def validatePhoneNumber():
     phoneNumber = request.args.get("phone_number", "", str)
+    db.session()
     client = Client.query.filter_by(phone_number = phoneNumber).one_or_none()
     if client:
+        db.session.close()
         return jsonify({"valid": True})
     else:
+        db.session.close()
         return jsonify({"valid": False})
 
 @api.route("/")
@@ -34,16 +37,18 @@ def passwordUpdate():
     phoneNumber = request.json.get("phone_number", None)
     deviceId = request.json.get("device_id", None)
     fcmToken = request.json.get("fcm_token", None)
-
+    db.session()
     client = Client.query.filter_by(phone_number = phoneNumber).one_or_none()
     print(f"phone_number: {phoneNumber}, device_id: {deviceId}")
     print(f"client: {client}")
 
     if client is None:
+        db.session.close()
         return "Error: No client", 400
     client.device_hash = deviceId
     client.fcm_token = fcmToken
     db.session.commit()
+    db.session.close()
     return "password updated"
 
 @api.route("/login", methods=["POST"])
@@ -59,6 +64,7 @@ def login():
     print(f"client: {client}")
     db.session.commit()
     if client is None:
+        db.session.close()
         return jsonify({"msg": "Número de teléfono inválido", "code": "1"})
     if client and client.device_hash == password:
         #if client.fcm_token:
@@ -79,6 +85,7 @@ def login():
 @api.route("/add", methods=["POST"])
 @jwt_required()
 def addCustomer():
+    db.session()
     newClient = Client(
         first_name=request.json.get("first_name", None),
         last_name=request.json.get("last_name", None),
@@ -88,6 +95,7 @@ def addCustomer():
         role = RoleNames.CUSTOMER)
     db.session.add(newClient)
     db.session.commit()
+    db.session.close()
     return jsonify({"msg": "Success"})
 
 @api.route("/user_role_name", methods=["GET"])
@@ -107,6 +115,7 @@ def customersList():
 @api.route("/addAdmin", methods=["POST"])
 def addAdmin():
     phoneNumber = request.json.get("phone_number", None)
+    db.session()
     newClient = Client.query.filter_by(phone_number=phoneNumber).one_or_none()
     if newClient is None:
         newClient = Client(
@@ -120,4 +129,5 @@ def addAdmin():
     else:
         newClient.role_name = RoleNames.ADMIN.name
     db.session.commit()
+    db.session.close()
     return jsonify({"msg": "Success"})
