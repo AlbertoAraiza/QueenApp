@@ -15,12 +15,13 @@ def clientList():
 def validatePhoneNumber():
     phoneNumber = request.args.get("phone_number", "", str)
     db.session()
+    print(phoneNumber)
     client = Client.query.filter_by(phone_number = phoneNumber).one_or_none()
+    print(client)
+    db.session.close()
     if client:
-        db.session.close()
         return jsonify({"valid": True})
     else:
-        db.session.close()
         return jsonify({"valid": False})
 
 @api.route("/")
@@ -53,33 +54,40 @@ def passwordUpdate():
 
 @api.route("/login", methods=["POST"])
 def login():
-    print("Login")
-    db.session()
-    username = request.json.get("username", None)
-    password = request.json.get("password", None)
-    print("params getted")
-    query = Client.query.filter_by(phone_number = username)
-    print(f"query: {query}")
-    client = query.one_or_none()
-    print(f"client: {client}")
-    db.session.commit()
-    if client is None:
+    response = "bad request", 404
+    try:
+        print("Login")
+        db.session()
+        username = request.json.get("username", None)
+        password = request.json.get("password", None)
+        print("params getted")
+        query = Client.query.filter_by(phone_number = username)
+        print(f"query: {query}")
+        client = query.one_or_none()
+        print(f"client: {client}")
+        db.session.commit()
+        if client is None:
+            db.session.close()
+            response = jsonify({"msg": "Número de teléfono inválido", "code": "1"})
+        if client and client.device_hash == password:
+            #if client.fcm_token:
+                #sendNotification(client.fcm_token, "Nuevo inicio de sesion", "Se ha registrado un nuevo inicio de sesion")
+            now = datetime.now()
+            exp = now + timedelta(1)
+            print(exp)
+            access_token = create_access_token(identity=client, expires_delta = timedelta(1))
+            print("returning")
+            db.session.close()
+            response = jsonify(access_token=access_token, expires = exp.strftime("%H:%M:%S %d-%m-%Y"))
+        else:
+            print("returning")
+            db.session.close()
+            response = jsonify({"msg": "Identificador incorrecto", "code":"2"})
+    except Exception as e:
+        raise Exception(e.message)
+    finally:
         db.session.close()
-        return jsonify({"msg": "Número de teléfono inválido", "code": "1"})
-    if client and client.device_hash == password:
-        #if client.fcm_token:
-            #sendNotification(client.fcm_token, "Nuevo inicio de sesion", "Se ha registrado un nuevo inicio de sesion")
-        now = datetime.now()
-        exp = now + timedelta(1)
-        print(exp)
-        access_token = create_access_token(identity=client, expires_delta = timedelta(1))
-        print("returning")
-        db.session.close()
-        return jsonify(access_token=access_token, expires = exp.strftime("%H:%M:%S %d-%m-%Y"))
-    else:
-        print("returning")
-        db.session.close()
-        return jsonify({"msg": "Identificador incorrecto", "code":"2"})
+    return response
 
 
 @api.route("/add", methods=["POST"])
@@ -101,16 +109,26 @@ def addCustomer():
 @api.route("/user_role_name", methods=["GET"])
 @jwt_required()
 def listOrders():
-    print("HOLA MUNDO")
     return jsonify({"role_name": current_user.role_name})
 
 @api.route("/list", methods=["GET"])
 @jwt_required()
 def customersList():
-    db.session()
-    clients = Client.query.all()
-    db.session().close()
-    return client_schema.dump(clients)
+    response = "bad request", 404
+    try:
+        phone_number = request.args.get("phone_number", "", str)
+        db.session()
+        if phone_number:
+            clients = Client.query.filter_by(phone_number=phone_number).all()
+        else:
+            clients = Client.query.all()
+        response = client_schema.dump(clients)
+    except Exception as e:
+        print ("Error: " + e.message)
+        raise Exception(e.message)
+    finally:
+        db.session.close()
+    return response
 
 @api.route("/addAdmin", methods=["POST"])
 def addAdmin():
