@@ -7,21 +7,20 @@ from models.Job import Job, job_schema
 from flask_jwt_extended import create_access_token, jwt_required, current_user
 from datetime import datetime, timedelta
 from utils.db import db
-from utils.send_notifications import sendNotification
 
+from utils.send_notifications import sendNotification
+from utils.functions import *
 
 job_api = Blueprint("job_api", __name__)
 @job_api.route('/JobList', methods=['GET'])
 @jwt_required()
 def JobList():
-    db.session()
-    phone_number = request.args.get("phone_number", "", str)
-    client = Client.query.filter_by(phone_number = phone_number).one_or_none()
+    phoneNumber = request.args.get("phone_number", "", str)
+    client = dbQuery(phoneNumber, findClientByPhoneNumber)
     if client and client.jobs:
         data = job_schema.dump(client.jobs)
     else:
         data = []
-    db.session().close()
     return data
 
 @job_api.route("/add", methods=["POST"])
@@ -29,10 +28,9 @@ def JobList():
 def addJob():
     phoneNumber = request.json.get("phone_number", None)
     description = request.json.get("description", None)
-    db.session()
     print(request.json.get("id", None))
     print(phoneNumber)
-    currentClient = Client.query.filter_by(phone_number = phoneNumber).one_or_none()
+    currentClient = dbQuery(phoneNumber, findClientByPhoneNumber)
     print(currentClient)
     if not currentClient:
         return 'bad request!', 400
@@ -47,40 +45,35 @@ def addJob():
         qr_code = request.json.get("qr_code", None),
         customer_id = currentClient.id
     )
-    db.session.add(newJob)
-    db.session.commit()
-    db.session.close()
+    updateObject(newJob)
     return jsonify({"msg": "Success"})
 
 @job_api.route("/completed", methods=["POST"])
 @jwt_required()
 def readyJob():
-    db.session()
     jobId = request.json.get("id", None)
-    oldJob = Job.query.filter_by(id = jobId).one_or_none()
+    oldJob = dbQuery(jobId, findJobById)
     if (oldJob is None):
-        db.session().close()
         return jsonify({"msg": "invalid job", "code" : 0})
     else:
-        if oldJob.customer.fcm_token:
-            sendNotification(oldJob.customer.fcm_token, "Trabajo completado", f"{oldJob.description} esta listo para entregarse.")
-        db.session()
+        if oldJob.customer.fcm_token: sendNotification(
+            oldJob.customer.fcm_token,
+            "Trabajo completado",
+            f"{oldJob.description} esta listo para entregarse.")
         oldJob.status = "Listo"
-        db.session.commit()
-        db.session().close()
+        updateObject(oldJob)
         return jsonify({"msg": "job updated", "code" : 1})
 
 @job_api.route("/delivered", methods=["POST"])
 @jwt_required()
 def completeJob():
     jobId = request.json.get("id", None)
-    oldJob = Job.query.filter_by(id = jobId).one_or_none()
+    oldJob = dbQuery(jobId, findJobById)
     if (oldJob is None):
         return jsonify({"msg": "invalid job", "code" : 0})
     else:
-        db.session()
         oldJob.status = "Completado"
-        db.session.commit()
+        updateObject(oldJob)
         return jsonify({"msg": "job updated", "code" : 1})
 
 @job_api.route("/update_payment", methods=["POST"])
@@ -88,13 +81,10 @@ def completeJob():
 def updatePayment():
     jobId = request.json.get("id", None)
     payment = request.json.get("payment", None)
-    db.session()
-    oldJob = Job.query.filter_by(id = jobId).one_or_none()
+    oldJob = dbQuery(jobId, findJobById)
     if (oldJob is None):
-        db.session.close()
         return jsonify({"msg": "invalid job", "code": 0})
     else:
         oldJob.payment += payment
-        db.session.commit()
-        db.session.close()
+        updateObject(oldJob)
         return jsonify({"msg": "job updated", "code": 1})

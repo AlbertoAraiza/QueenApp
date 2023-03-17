@@ -5,6 +5,7 @@ from flask_jwt_extended import create_access_token, jwt_required, current_user
 from datetime import datetime, timedelta
 from utils.db import db
 from utils.send_notifications import sendNotification
+from utils.functions import *
 
 api = Blueprint("api", __name__)
 @api.route('/clientList')
@@ -14,11 +15,7 @@ def clientList():
 @api.route('/validatePhoneNumber')
 def validatePhoneNumber():
     phoneNumber = request.args.get("phone_number", "", str)
-    db.session()
-    print(phoneNumber)
-    client = Client.query.filter_by(phone_number = phoneNumber).one_or_none()
-    print(client)
-    db.session.close()
+    client = dbQuery(phoneNumber, findClientByPhoneNumber)
     if client:
         return jsonify({"valid": True})
     else:
@@ -38,73 +35,81 @@ def passwordUpdate():
     phoneNumber = request.json.get("phone_number", None)
     deviceId = request.json.get("device_id", None)
     fcmToken = request.json.get("fcm_token", None)
-    db.session()
-    client = Client.query.filter_by(phone_number = phoneNumber).one_or_none()
-    print(f"phone_number: {phoneNumber}, device_id: {deviceId}")
-    print(f"client: {client}")
+    client = dbQuery(phoneNumber, findClientByPhoneNumber)
+    if client:
+        client.device_hash = deviceId
+        client.fcm_token = fcmToken
+        updateObject(client)
+        return "password updated"
+    else: return "Error: No client", 400
 
-    if client is None:
-        db.session.close()
-        return "Error: No client", 400
-    client.device_hash = deviceId
-    client.fcm_token = fcmToken
-    db.session.commit()
-    db.session.close()
-    return "password updated"
+@api.route("/update_data", methods=["POST"])
+def updateData():
+    response = "bad request", 404
+    customerId = request.json.get("customer_id", None)
+    phoneNumber = request.json.get("phone_number", "")
+    firstName = request.json.get("first_name","")
+    lastName = request.json.get("last_name","")
+    print(f"customerId: {customerId}")
+    print(f"phoneNumber: {phoneNumber}")
+    print(f"firstName: {firstName}")
+    print(f"lastName: {lastName}")
+
+    client = dbQuery(phoneNumber, findClientByPhoneNumber)
+    print(f"client: {client}")
+    if client and client.id != customerId: response = "0"
+    else:
+        if customerId:
+            client = dbQuery(customerId, findClientById)
+            print(f"client: {client}")
+            if client:
+                client.first_name = firstName
+                client.last_name = lastName
+                client.phone_number = phoneNumber
+                updateObject(client)
+                response = "1"
+    return response
 
 @api.route("/login", methods=["POST"])
 def login():
     response = "bad request", 404
-    try:
-        print("Login")
-        db.session()
-        username = request.json.get("username", None)
-        password = request.json.get("password", None)
-        print("params getted")
-        query = Client.query.filter_by(phone_number = username)
-        print(f"query: {query}")
-        client = query.one_or_none()
-        print(f"client: {client}")
-        db.session.commit()
-        if client is None:
-            db.session.close()
-            response = jsonify({"msg": "Número de teléfono inválido", "code": "1"})
-        if client and client.device_hash == password:
-            #if client.fcm_token:
-                #sendNotification(client.fcm_token, "Nuevo inicio de sesion", "Se ha registrado un nuevo inicio de sesion")
-            now = datetime.now()
-            exp = now + timedelta(1)
-            print(exp)
-            access_token = create_access_token(identity=client, expires_delta = timedelta(1))
-            print("returning")
-            db.session.close()
-            response = jsonify(access_token=access_token, expires = exp.strftime("%H:%M:%S %d-%m-%Y"))
-        else:
-            print("returning")
-            db.session.close()
-            response = jsonify({"msg": "Identificador incorrecto", "code":"2"})
-    except Exception as e:
-        raise Exception(e.message)
-    finally:
-        db.session.close()
+    username = request.json.get("username", None)
+    password = request.json.get("password", None)
+    client = dbQuery(username, findClientByPhoneNumber)
+    print(client.device_hash)
+    if client is None:
+        response = jsonify({"msg": "Número de teléfono inválido", "code": "1"})
+    if client and client.device_hash == password:
+        now = datetime.now()
+        exp = now + timedelta(1)
+        print(exp)
+        access_token = create_access_token(identity=client, expires_delta = timedelta(1))
+        print("returning")
+        response = jsonify(access_token=access_token, expires = exp.strftime("%H:%M:%S %d-%m-%Y"))
+    else:
+        print("returning")
+        response = jsonify({"msg": "Identificador incorrecto", "code":"2"})
     return response
 
 
 @api.route("/add", methods=["POST"])
 @jwt_required()
 def addCustomer():
-    db.session()
-    newClient = Client(
-        first_name=request.json.get("first_name", None),
-        last_name=request.json.get("last_name", None),
-        fcm_token = "",
-        phone_number=request.json.get("phone_number", None),
-        device_hash="",
-        role = RoleNames.CUSTOMER)
-    db.session.add(newClient)
-    db.session.commit()
-    db.session.close()
-    return jsonify({"msg": "Success"})
+    response = "bad request", 401
+    phoneNumber=request.json.get("phone_number", None),
+    client = dbQuery(phoneNumber, findClientByPhoneNumber)
+    if client: response = "0"
+    else :
+        newClient = Client(
+            first_name=request.json.get("first_name", None),
+            last_name=request.json.get("last_name", None),
+            phone_number= phoneNumber,
+            fcm_token = "",
+            device_hash="",
+            role = RoleNames.CUSTOMER)
+        updateObject(newClient)
+        response = "1"
+    return response
 
 @api.route("/user_role_name", methods=["GET"])
 @jwt_required()
@@ -115,27 +120,18 @@ def listOrders():
 @jwt_required()
 def customersList():
     response = "bad request", 404
-    try:
-        phone_number = request.args.get("phone_number", "", str)
-        db.session()
-        if phone_number:
-            clients = Client.query.filter_by(phone_number=phone_number).all()
-        else:
-            clients = Client.query.all()
-        response = client_schema.dump(clients)
-    except Exception as e:
-        print ("Error: " + e.message)
-        raise Exception(e.message)
-    finally:
-        db.session.close()
+    phoneNumber = request.args.get("phone_number", "", str)
+    clients = dbQuery(phoneNumber, findClients)
+    response = client_schema.dump(clients)
     return response
 
 @api.route("/addAdmin", methods=["POST"])
 def addAdmin():
     phoneNumber = request.json.get("phone_number", None)
-    db.session()
-    newClient = Client.query.filter_by(phone_number=phoneNumber).one_or_none()
-    if newClient is None:
+    newClient = dbQuery(phoneNumber, findClientByPhoneNumber)
+    #newClient = Client.query.filter_by(phone_number=phoneNumber).one_or_none()
+    if newClient: newClient.role_name = RoleNames.ADMIN.name
+    else:
         newClient = Client(
             first_name = request.json.get("first_name", None),
             last_name = request.json.get("last_name", None),
@@ -143,9 +139,5 @@ def addAdmin():
             phone_number = request.json.get("phone_number", None),
             device_hash = request.json.get("device_hash", None),
             role = RoleNames.ADMIN)
-        db.session.add(newClient)
-    else:
-        newClient.role_name = RoleNames.ADMIN.name
-    db.session.commit()
-    db.session.close()
+    updateObject(newClient)
     return jsonify({"msg": "Success"})

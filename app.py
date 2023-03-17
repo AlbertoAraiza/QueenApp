@@ -8,8 +8,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
-from utils.config import secret_key, database_uri, jwt_secret, track_modifications, pool_timeout, pool_recycle, pool_pre_ping
-import git, os
+from utils.config import *
+import git
 import firebase_admin
 from firebase_admin import credentials
 
@@ -28,8 +28,6 @@ tempma = Marshmallow(app)
 
 Migrate(app, tempdb)
 jwt = JWTManager(app, True)
-#path = "./utils/firebase-adminsdk.json"
-path = os.path.abspath(os.path.dirname(__file__)) + "/utils/firebase-adminsdk.json"
 print(path)
 cred = credentials.Certificate(path)
 firebase_admin.initialize_app(cred)
